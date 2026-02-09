@@ -18,9 +18,9 @@ jobs:
       ci_workflow_run_id: ${{ steps.resolve.outputs.ci_workflow_run_id }}
       ci_workflow_run_url: ${{ steps.resolve.outputs.ci_workflow_run_url }}
     env:
-      CI_PR_TOKEN: ${{ secrets.CI_PR_TOKEN }}
+      CI_PR_TOKEN: ${{ secrets.CI_PR_TOKEN || secrets.GITHUB_TOKEN }}
       PR_TITLE: ${{ github.event.pull_request.title }}
-      CI_REPO: ${{ vars.CI_REPO }}
+      CI_REPO: ${{ vars.CI_REPO || 'actions/runner-images-ci' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5

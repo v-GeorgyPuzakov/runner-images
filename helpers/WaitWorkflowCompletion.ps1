@@ -43,7 +43,8 @@ function Write-WorkflowDiagnostics {
                 $stepSummaries = $job.steps | ForEach-Object { "[$($_.name) => $($_.conclusion ?? $_.status)]" }
             }
             $stepSummaryText = if ($stepSummaries.Count -gt 0) { $stepSummaries -join '; ' } else { 'no steps reported' }
-            Write-Host " - $($job.name) (attempt $($job.run_attempt)) => $($job.conclusion ?? $job.status); steps: $stepSummaryText"
+            $jobUrl = if ($job.html_url) { $job.html_url } else { 'N/A' }
+            Write-Host " - $($job.name) (attempt $($job.run_attempt)) => $($job.conclusion ?? $job.status); steps: $stepSummaryText; url: $jobUrl"
         }
     }
 }

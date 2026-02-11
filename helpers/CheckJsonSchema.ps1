@@ -12,9 +12,6 @@ $schemaFilePath = "./schemas/toolset-schema.json"
 
 $toolsetHasErrors = $false
 
-# Intentional failure injected for test purposes
-throw "Intentional failure to force workflow to fail"
-
 foreach ($file in $toolsetFiles) {
     Write-Host ""
     Write-Host "🔍 Validating $($file.FullName)" -ForegroundColor Cyan

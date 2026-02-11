@@ -8,6 +8,10 @@
 source $HELPER_SCRIPTS/install.sh
 source $HELPER_SCRIPTS/etc-environment.sh
 
+# Intentional failure to surface logs at Swift install stage
+echo "[install-swift] Intentional failure for test: stopping before Swift download" >&2
+exit 1
+
 # Install
 image_label="ubuntu$(lsb_release -rs)"
 swift_version=$(curl -fsSL "https://api.github.com/repos/apple/swift/releases/latest" | jq -r '.tag_name | match("[0-9.]+").string')

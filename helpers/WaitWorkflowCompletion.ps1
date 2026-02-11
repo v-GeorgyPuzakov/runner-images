@@ -15,7 +15,7 @@ function Wait-ForWorkflowCompletion($WorkflowRunId, $RetryIntervalSeconds) {
     do {
         Start-Sleep -Seconds $RetryIntervalSeconds
         $workflowRun = $gitHubApi.GetWorkflowRun($WorkflowRunId)
-        Write-Host "Waiting for workflow $WorkflowRunId: status=$($workflowRun.status) conclusion=$($workflowRun.conclusion)"
+        Write-Host "Waiting for workflow ${WorkflowRunId}: status=$($workflowRun.status) conclusion=$($workflowRun.conclusion)"
     } until ($workflowRun.status -eq "completed")
 
     return $workflowRun

@@ -68,16 +68,31 @@ function Write-FailedJobLogs {
         try {
             Write-Host "Fetching logs for failed job: $($job.name) ($($job.id))"
             $GitHubApi.DownloadJobLogs($job.id, $zipPath)
-            Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
+            if (-not (Test-Path $zipPath) -or (Get-Item $zipPath).Length -eq 0) {
+                Write-Host "No log archive downloaded for job $($job.name)."
+                continue
+            }
 
-            $logFiles = Get-ChildItem -Path $extractPath -Recurse -File | Sort-Object Length -Descending
-            if ($logFiles.Count -gt 0) {
-                $logContent = Get-Content -Path $logFiles[0].FullName
-                Write-Host "---- Tail of $($job.name) ----"
-                ($logContent | Select-Object -Last $TailLines) -join "`n" | Write-Host
-                Write-Host "---- End tail ----"
-            } else {
-                Write-Host "No log files found for job $($job.name)."
+            try {
+                Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
+                $logFiles = Get-ChildItem -Path $extractPath -Recurse -File | Sort-Object Length -Descending
+                if ($logFiles.Count -gt 0) {
+                    $logContent = Get-Content -Path $logFiles[0].FullName
+                    Write-Host "---- Tail of $($job.name) ----"
+                    ($logContent | Select-Object -Last $TailLines) -join "`n" | Write-Host
+                    Write-Host "---- End tail ----"
+                } else {
+                    Write-Host "No log files found for job $($job.name)."
+                }
+            } catch {
+                Write-Host "Archive extraction failed for job $($job.name): $($_.Exception.Message)"
+                Write-Host "Dumping raw content tail from downloaded file"
+                $rawContent = Get-Content -Path $zipPath -ErrorAction SilentlyContinue
+                if ($rawContent) {
+                    ($rawContent | Select-Object -Last $TailLines) -join "`n" | Write-Host
+                } else {
+                    Write-Host "No raw content available to display."
+                }
             }
         } catch {
             Write-Host "Failed to fetch logs for job $($job.name): $($_.Exception.Message)"

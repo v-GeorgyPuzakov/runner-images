@@ -46,10 +46,12 @@ class GithubApi
     [void] DownloadJobLogs([string]$JobId, [string]$DestinationPath) {
         $requestUrl = $this.BuildUrl("actions/jobs/$JobId/logs", $null, "api")
         $params = @{
-            Uri     = $requestUrl
-            Method  = "GET"
-            Headers = @{}
-            OutFile = $DestinationPath
+            Uri                  = $requestUrl
+            Method               = "GET"
+            Headers              = @{}
+            OutFile              = $DestinationPath
+            MaximumRedirection   = 5
+            ErrorAction          = "Stop"
         }
         if ($this.AuthHeader) {
             $params.Headers += $this.AuthHeader

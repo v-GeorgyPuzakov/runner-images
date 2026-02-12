@@ -118,13 +118,14 @@ function Write-FailedJobLogs {
                 }
             } catch {
                 Write-Host "Archive extraction failed for job $($job.name): $($_.Exception.Message)"
-                Write-Host "Dumping raw content tail from downloaded file"
+                Write-Host "Dumping provisioner window from raw downloaded content"
                 $rawContent = Get-Content -Path $zipPath -ErrorAction SilentlyContinue
                 if ($rawContent) {
+                    $slice = Get-ProvisionerWindow -Lines $rawContent
                     if ($TailLines -gt 0) {
-                        ($rawContent | Select-Object -Last $TailLines) -join "`n" | Write-Host
+                        ($slice | Select-Object -Last $TailLines) -join "`n" | Write-Host
                     } else {
-                        $rawContent -join "`n" | Write-Host
+                        $slice -join "`n" | Write-Host
                     }
                 } else {
                     Write-Host "No raw content available to display."

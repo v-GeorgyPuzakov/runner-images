@@ -53,7 +53,7 @@ function Write-FailedJobLogs {
     param (
         $WorkflowJobs,
         $GitHubApi,
-        [int] $TailLines = 200
+        [int] $TailLines = 0
     )
 
     if (-not ($WorkflowJobs -and $WorkflowJobs.jobs)) {
@@ -79,7 +79,11 @@ function Write-FailedJobLogs {
                 if ($logFiles.Count -gt 0) {
                     $logContent = Get-Content -Path $logFiles[0].FullName
                     Write-Host "---- Tail of $($job.name) ----"
-                    ($logContent | Select-Object -Last $TailLines) -join "`n" | Write-Host
+                    if ($TailLines -gt 0) {
+                        ($logContent | Select-Object -Last $TailLines) -join "`n" | Write-Host
+                    } else {
+                        $logContent -join "`n" | Write-Host
+                    }
                     Write-Host "---- End tail ----"
                 } else {
                     Write-Host "No log files found for job $($job.name)."
@@ -89,7 +93,11 @@ function Write-FailedJobLogs {
                 Write-Host "Dumping raw content tail from downloaded file"
                 $rawContent = Get-Content -Path $zipPath -ErrorAction SilentlyContinue
                 if ($rawContent) {
-                    ($rawContent | Select-Object -Last $TailLines) -join "`n" | Write-Host
+                    if ($TailLines -gt 0) {
+                        ($rawContent | Select-Object -Last $TailLines) -join "`n" | Write-Host
+                    } else {
+                        $rawContent -join "`n" | Write-Host
+                    }
                 } else {
                     Write-Host "No raw content available to display."
                 }
@@ -127,7 +135,7 @@ try {
     $workflowJobs = $gitHubApi.GetWorkflowRunJobs($WorkflowRunId)
     Write-WorkflowDiagnostics -WorkflowRun $finishedWorkflowRun -WorkflowJobs $workflowJobs
     if ($finishedWorkflowRun.conclusion -eq "failure") {
-        Write-FailedJobLogs -WorkflowJobs $workflowJobs -GitHubApi $gitHubApi -TailLines 200
+        Write-FailedJobLogs -WorkflowJobs $workflowJobs -GitHubApi $gitHubApi -TailLines 0
     }
 } catch {
     Write-Host "Failed to fetch workflow job details: $($_.Exception.Message)"

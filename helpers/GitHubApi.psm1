@@ -43,6 +43,21 @@ class GithubApi
         return $response
     }
 
+    [void] DownloadJobLogs([string]$JobId, [string]$DestinationPath) {
+        $requestUrl = $this.BuildUrl("actions/jobs/$JobId/logs", $null, "api")
+        $params = @{
+            Uri     = $requestUrl
+            Method  = "GET"
+            Headers = @{}
+            OutFile = $DestinationPath
+        }
+        if ($this.AuthHeader) {
+            $params.Headers += $this.AuthHeader
+        }
+
+        Invoke-WebRequest @params | Out-Null
+    }
+
     [object] DispatchWorkflow([string]$EventType, [object]$EventPayload) {
         $url = "dispatches"
         $body = @{

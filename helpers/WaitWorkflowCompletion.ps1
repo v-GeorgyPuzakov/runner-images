@@ -49,6 +49,45 @@ function Write-WorkflowDiagnostics {
     }
 }
 
+function Write-FailedJobLogs {
+    param (
+        $WorkflowJobs,
+        $GitHubApi,
+        [int] $TailLines = 200
+    )
+
+    if (-not ($WorkflowJobs -and $WorkflowJobs.jobs)) {
+        return
+    }
+
+    $failedJobs = $WorkflowJobs.jobs | Where-Object { $_.conclusion -eq "failure" }
+    foreach ($job in $failedJobs) {
+        $zipPath = Join-Path $env:RUNNER_TEMP "job-$($job.id)-logs.zip"
+        $extractPath = Join-Path $env:RUNNER_TEMP "job-$($job.id)-logs"
+
+        try {
+            Write-Host "Fetching logs for failed job: $($job.name) ($($job.id))"
+            $GitHubApi.DownloadJobLogs($job.id, $zipPath)
+            Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
+
+            $logFiles = Get-ChildItem -Path $extractPath -Recurse -File | Sort-Object Length -Descending
+            if ($logFiles.Count -gt 0) {
+                $logContent = Get-Content -Path $logFiles[0].FullName
+                Write-Host "---- Tail of $($job.name) ----"
+                ($logContent | Select-Object -Last $TailLines) -join "`n" | Write-Host
+                Write-Host "---- End tail ----"
+            } else {
+                Write-Host "No log files found for job $($job.name)."
+            }
+        } catch {
+            Write-Host "Failed to fetch logs for job $($job.name): $($_.Exception.Message)"
+        } finally {
+            Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path $extractPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 $gitHubApi = Get-GithubApi -Repository $Repository -AccessToken $AccessToken
 
 $attempt = 1
@@ -72,6 +111,9 @@ Write-Host "Last result: $($finishedWorkflowRun.conclusion)."
 try {
     $workflowJobs = $gitHubApi.GetWorkflowRunJobs($WorkflowRunId)
     Write-WorkflowDiagnostics -WorkflowRun $finishedWorkflowRun -WorkflowJobs $workflowJobs
+    if ($finishedWorkflowRun.conclusion -eq "failure") {
+        Write-FailedJobLogs -WorkflowJobs $workflowJobs -GitHubApi $gitHubApi -TailLines 200
+    }
 } catch {
     Write-Host "Failed to fetch workflow job details: $($_.Exception.Message)"
 }

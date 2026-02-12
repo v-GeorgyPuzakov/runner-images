@@ -61,6 +61,33 @@ function Write-FailedJobLogs {
     }
 
     $failedJobs = $WorkflowJobs.jobs | Where-Object { $_.conclusion -eq "failure" }
+
+    function Get-ProvisionerWindow {
+        param([string[]] $Lines)
+
+        if (-not $Lines) { return $Lines }
+
+        $start = $null
+        for ($i = $Lines.Length - 1; $i -ge 0; $i--) {
+            if ($Lines[$i] -match "Provisioning with") {
+                $start = $i
+                break
+            }
+        }
+
+        if ($start -eq $null) { return $Lines }
+
+        $end = $null
+        for ($j = $start; $j -lt $Lines.Length; $j++) {
+            if ($Lines[$j] -match "Provisioning step had errors: Running the cleanup provisioner, if present") {
+                $end = $j
+                break
+            }
+        }
+
+        if ($end -eq $null) { return $Lines[$start..($Lines.Length - 1)] }
+        return $Lines[$start..$end]
+    }
     foreach ($job in $failedJobs) {
         $zipPath = Join-Path $env:RUNNER_TEMP "job-$($job.id)-logs.zip"
         $extractPath = Join-Path $env:RUNNER_TEMP "job-$($job.id)-logs"
@@ -78,13 +105,14 @@ function Write-FailedJobLogs {
                 $logFiles = Get-ChildItem -Path $extractPath -Recurse -File | Sort-Object Length -Descending
                 if ($logFiles.Count -gt 0) {
                     $logContent = Get-Content -Path $logFiles[0].FullName
-                    Write-Host "---- Tail of $($job.name) ----"
+                    $slice = Get-ProvisionerWindow -Lines $logContent
+                    Write-Host "---- Provisioner log for $($job.name) ----"
                     if ($TailLines -gt 0) {
-                        ($logContent | Select-Object -Last $TailLines) -join "`n" | Write-Host
+                        ($slice | Select-Object -Last $TailLines) -join "`n" | Write-Host
                     } else {
-                        $logContent -join "`n" | Write-Host
+                        $slice -join "`n" | Write-Host
                     }
-                    Write-Host "---- End tail ----"
+                    Write-Host "---- End provisioner log ----"
                 } else {
                     Write-Host "No log files found for job $($job.name)."
                 }

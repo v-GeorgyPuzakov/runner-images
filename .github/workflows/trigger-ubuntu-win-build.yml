@@ -19,8 +19,10 @@ jobs:
       ci_workflow_run_url: ${{ steps.resolve.outputs.ci_workflow_run_url }}
     env:
       CI_PR_TOKEN: ${{ secrets.CI_PR_TOKEN || secrets.GITHUB_TOKEN }}
-      PR_TITLE: ${{ github.event.pull_request.title }}
+      PR_TITLE: ${{ github.event.pull_request.title || github.ref_name }}
       CI_REPO: ${{ vars.CI_REPO || 'actions/runner-images-ci' }}
+      CUSTOM_REPO: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+      CUSTOM_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
@@ -34,8 +36,8 @@ jobs:
           [string] $prGuid = New-Guid
           $clientPayload = @{
               pr_title                = "${env:PR_TITLE} - " + $prGuid
-              custom_repo             = "${{ github.event.pull_request.head.repo.full_name }}"
-              custom_repo_commit_hash = "${{ github.event.pull_request.head.sha }}"
+              custom_repo             = "${env:CUSTOM_REPO}"
+              custom_repo_commit_hash = "${env:CUSTOM_SHA}"
           }
 
           $gitHubApi.DispatchWorkflow($eventType, $clientPayload)
@@ -82,8 +84,8 @@ jobs:
 
       - name: Wait for workflow completion
         env:
-          CI_PR_TOKEN: ${{ secrets.CI_PR_TOKEN }}
-          CI_REPO: ${{ vars.CI_REPO }}
+          CI_PR_TOKEN: ${{ secrets.CI_PR_TOKEN || secrets.GITHUB_TOKEN }}
+          CI_REPO: ${{ vars.CI_REPO || 'actions/runner-images-ci' }}
         run: |
           ./helpers/WaitWorkflowCompletion.ps1 `
             -WorkflowRunId "${{ needs.trigger-workflow.outputs.ci_workflow_run_id }}" `
@@ -110,8 +112,8 @@ jobs:
 
       - name: Cancel workflow
         env:
-          CI_PR_TOKEN: ${{ secrets.CI_PR_TOKEN }}
-          CI_REPO: ${{ vars.CI_REPO }}
+          CI_PR_TOKEN: ${{ secrets.CI_PR_TOKEN || secrets.GITHUB_TOKEN }}
+          CI_REPO: ${{ vars.CI_REPO || 'actions/runner-images-ci' }}
         run: |
           Import-Module ./helpers/GitHubApi.psm1
 

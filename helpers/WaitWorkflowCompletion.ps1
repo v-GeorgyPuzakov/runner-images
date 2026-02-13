@@ -59,6 +59,42 @@ function Write-FailedJobLogs {
         if ($end -lt $start) { return @() }
         return $Lines[$start..$end]
     }
+
+    function Invoke-CopilotLogAnalysis {
+        param([string[]] $LogLines)
+
+        if (-not $LogLines -or $LogLines.Count -eq 0) { return }
+        if (-not (Get-Command copilot -ErrorAction SilentlyContinue)) { return }
+        if ([string]::IsNullOrWhiteSpace($env:COPILOT_GITHUB_TOKEN)) { return }
+
+        $prompt = @"
+Analyze the following CI provisioner failure log.
+Return only 2 short lines:
+1) Root cause
+2) Suggested fix
+
+Log:
+$($LogLines -join "`n")
+"@
+
+        $promptFile = Join-Path $env:RUNNER_TEMP "copilot-log-analysis.txt"
+        $prompt | Out-File -FilePath $promptFile -Encoding utf8NoBOM
+
+        try {
+            if ([string]::IsNullOrWhiteSpace($env:COPILOT_AUTO_UPDATE)) { $env:COPILOT_AUTO_UPDATE = "false" }
+            if ([string]::IsNullOrWhiteSpace($env:COPILOT_MODEL)) { $env:COPILOT_MODEL = "gpt-5" }
+            if ([string]::IsNullOrWhiteSpace($env:COPILOT_ALLOW_ALL)) { $env:COPILOT_ALLOW_ALL = "false" }
+
+            $analysis = Get-Content -Path $promptFile -Raw | copilot --no-ask-user --no-custom-instructions 2>$null
+            if (-not [string]::IsNullOrWhiteSpace($analysis)) {
+                Write-Host $analysis.Trim()
+            }
+        } catch {
+        } finally {
+            Remove-Item -Path $promptFile -Force -ErrorAction SilentlyContinue
+        }
+    }
+
     foreach ($job in $failedJobs) {
         $zipPath = Join-Path $env:RUNNER_TEMP "job-$($job.id)-logs.zip"
         $extractPath = Join-Path $env:RUNNER_TEMP "job-$($job.id)-logs"
@@ -85,6 +121,7 @@ function Write-FailedJobLogs {
             }
 
             if ($slice.Count -gt 0) {
+                Invoke-CopilotLogAnalysis -LogLines $slice
                 ($slice | Select-Object -Last ($(if ($TailLines -gt 0) { $TailLines } else { $slice.Count }))) -join "`n" | Write-Host
             }
         } finally {

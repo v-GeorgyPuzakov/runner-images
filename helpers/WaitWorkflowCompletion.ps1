@@ -93,44 +93,29 @@ function Write-FailedJobLogs {
         $extractPath = Join-Path $env:RUNNER_TEMP "job-$($job.id)-logs"
 
         try {
-            Write-Host "Fetching logs for failed job: $($job.name) ($($job.id))"
             $GitHubApi.DownloadJobLogs($job.id, $zipPath)
             if (-not (Test-Path $zipPath) -or (Get-Item $zipPath).Length -eq 0) {
-                Write-Host "No log archive downloaded for job $($job.name)."
                 continue
             }
 
+            $slice = @()
             try {
-                Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
+                Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force -ErrorAction Stop | Out-Null
                 $logFiles = Get-ChildItem -Path $extractPath -Recurse -File | Sort-Object Length -Descending
                 if ($logFiles.Count -gt 0) {
                     $logContent = Get-Content -Path $logFiles[0].FullName
                     $slice = Get-ProvisionerWindow -Lines $logContent
-                    if ($slice.Count -gt 0) {
-                        ($slice | Select-Object -Last ($(if ($TailLines -gt 0) { $TailLines } else { $slice.Count }))) -join "`n" | Write-Host
-                    } else {
-                        Write-Host "No provisioner window found for job $($job.name)."
-                    }
-                } else {
-                    Write-Host "No log files found for job $($job.name)."
                 }
             } catch {
-                Write-Host "Archive extraction failed for job $($job.name): $($_.Exception.Message)"
-                Write-Host "Dumping provisioner window from raw downloaded content"
                 $rawContent = Get-Content -Path $zipPath -ErrorAction SilentlyContinue
                 if ($rawContent) {
                     $slice = Get-ProvisionerWindow -Lines $rawContent
-                    if ($slice.Count -gt 0) {
-                        ($slice | Select-Object -Last ($(if ($TailLines -gt 0) { $TailLines } else { $slice.Count }))) -join "`n" | Write-Host
-                    } else {
-                        Write-Host "No provisioner window found in raw content."
-                    }
-                } else {
-                    Write-Host "No raw content available to display."
                 }
             }
-        } catch {
-            Write-Host "Failed to fetch logs for job $($job.name): $($_.Exception.Message)"
+
+            if ($slice.Count -gt 0) {
+                ($slice | Select-Object -Last ($(if ($TailLines -gt 0) { $TailLines } else { $slice.Count }))) -join "`n" | Write-Host
+            }
         } finally {
             Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
             Remove-Item -Path $extractPath -Recurse -Force -ErrorAction SilentlyContinue

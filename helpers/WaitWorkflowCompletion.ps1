@@ -65,7 +65,7 @@ function Write-FailedJobLogs {
     function Get-ProvisionerWindow {
         param([string[]] $Lines)
 
-        if (-not $Lines) { return $Lines }
+        if (-not $Lines) { return @() }
 
         $start = $null
         for ($i = $Lines.Length - 1; $i -ge 0; $i--) {
@@ -75,17 +75,17 @@ function Write-FailedJobLogs {
             }
         }
 
-        if ($start -eq $null) { return $Lines }
+        if ($start -eq $null) { return @() }
 
-        $end = $null
+        $end = $Lines.Length - 1
         for ($j = $start; $j -lt $Lines.Length; $j++) {
             if ($Lines[$j] -match "Provisioning step had errors: Running the cleanup provisioner, if present") {
-                $end = $j
+                $end = $j - 1
                 break
             }
         }
 
-        if ($end -eq $null) { return $Lines[$start..($Lines.Length - 1)] }
+        if ($end -lt $start) { return @() }
         return $Lines[$start..$end]
     }
     foreach ($job in $failedJobs) {
@@ -106,13 +106,11 @@ function Write-FailedJobLogs {
                 if ($logFiles.Count -gt 0) {
                     $logContent = Get-Content -Path $logFiles[0].FullName
                     $slice = Get-ProvisionerWindow -Lines $logContent
-                    Write-Host "---- Provisioner log for $($job.name) ----"
-                    if ($TailLines -gt 0) {
-                        ($slice | Select-Object -Last $TailLines) -join "`n" | Write-Host
+                    if ($slice.Count -gt 0) {
+                        ($slice | Select-Object -Last ($(if ($TailLines -gt 0) { $TailLines } else { $slice.Count }))) -join "`n" | Write-Host
                     } else {
-                        $slice -join "`n" | Write-Host
+                        Write-Host "No provisioner window found for job $($job.name)."
                     }
-                    Write-Host "---- End provisioner log ----"
                 } else {
                     Write-Host "No log files found for job $($job.name)."
                 }
@@ -122,10 +120,10 @@ function Write-FailedJobLogs {
                 $rawContent = Get-Content -Path $zipPath -ErrorAction SilentlyContinue
                 if ($rawContent) {
                     $slice = Get-ProvisionerWindow -Lines $rawContent
-                    if ($TailLines -gt 0) {
-                        ($slice | Select-Object -Last $TailLines) -join "`n" | Write-Host
+                    if ($slice.Count -gt 0) {
+                        ($slice | Select-Object -Last ($(if ($TailLines -gt 0) { $TailLines } else { $slice.Count }))) -join "`n" | Write-Host
                     } else {
-                        $slice -join "`n" | Write-Host
+                        Write-Host "No provisioner window found in raw content."
                     }
                 } else {
                     Write-Host "No raw content available to display."

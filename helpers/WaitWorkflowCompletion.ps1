@@ -98,9 +98,9 @@ $($LogLines -join "`n")
             if ([string]::IsNullOrWhiteSpace($env:COPILOT_MODEL)) { $env:COPILOT_MODEL = "gpt-5" }
             if ([string]::IsNullOrWhiteSpace($env:COPILOT_ALLOW_ALL)) { $env:COPILOT_ALLOW_ALL = "false" }
 
-            $analysis = Get-Content -Path $promptFile -Raw | & $copilotCmd --no-ask-user --no-custom-instructions 2>$null
+            $analysis = (Get-Content -Path $promptFile -Raw | & $copilotCmd --no-ask-user --no-custom-instructions 2>&1 | Out-String).Trim()
             if (-not [string]::IsNullOrWhiteSpace($analysis)) {
-                Write-Host $analysis.Trim()
+                Write-Host $analysis
             }
         } catch {
         } finally {

@@ -64,8 +64,21 @@ function Write-FailedJobLogs {
         param([string[]] $LogLines)
 
         if (-not $LogLines -or $LogLines.Count -eq 0) { return }
-        if (-not (Get-Command copilot -ErrorAction SilentlyContinue)) { return }
         if ([string]::IsNullOrWhiteSpace($env:COPILOT_GITHUB_TOKEN)) { return }
+
+        $copilotCmd = $null
+        $cmdInfo = Get-Command copilot -ErrorAction SilentlyContinue
+        if ($cmdInfo) {
+            $copilotCmd = $cmdInfo.Source
+        } else {
+            $candidatePaths = @(
+                (Join-Path $env:HOME ".local/bin/copilot"),
+                "/usr/local/bin/copilot",
+                "/opt/homebrew/bin/copilot"
+            )
+            $copilotCmd = $candidatePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+        }
+        if ([string]::IsNullOrWhiteSpace($copilotCmd)) { return }
 
         $prompt = @"
 Analyze the following CI provisioner failure log.
@@ -85,7 +98,7 @@ $($LogLines -join "`n")
             if ([string]::IsNullOrWhiteSpace($env:COPILOT_MODEL)) { $env:COPILOT_MODEL = "gpt-5" }
             if ([string]::IsNullOrWhiteSpace($env:COPILOT_ALLOW_ALL)) { $env:COPILOT_ALLOW_ALL = "false" }
 
-            $analysis = Get-Content -Path $promptFile -Raw | copilot --no-ask-user --no-custom-instructions 2>$null
+            $analysis = Get-Content -Path $promptFile -Raw | & $copilotCmd --no-ask-user --no-custom-instructions 2>$null
             if (-not [string]::IsNullOrWhiteSpace($analysis)) {
                 Write-Host $analysis.Trim()
             }

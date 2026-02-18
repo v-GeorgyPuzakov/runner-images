@@ -97,8 +97,14 @@ $($LogLines -join "`n")
             if ([string]::IsNullOrWhiteSpace($env:COPILOT_AUTO_UPDATE)) { $env:COPILOT_AUTO_UPDATE = "false" }
             if ([string]::IsNullOrWhiteSpace($env:COPILOT_MODEL)) { $env:COPILOT_MODEL = "gpt-5" }
             if ([string]::IsNullOrWhiteSpace($env:COPILOT_ALLOW_ALL)) { $env:COPILOT_ALLOW_ALL = "false" }
+            if ([string]::IsNullOrWhiteSpace($env:GH_TOKEN)) { $env:GH_TOKEN = $env:COPILOT_GITHUB_TOKEN }
+            if ([string]::IsNullOrWhiteSpace($env:GITHUB_TOKEN)) { $env:GITHUB_TOKEN = $env:COPILOT_GITHUB_TOKEN }
 
             $analysis = (Get-Content -Path $promptFile -Raw | & $copilotCmd --no-ask-user --no-custom-instructions 2>&1 | Out-String).Trim()
+            if ($analysis -match "No authentication information found") {
+                return
+            }
+
             if (-not [string]::IsNullOrWhiteSpace($analysis)) {
                 Write-Host $analysis
             }

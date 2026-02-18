@@ -86,7 +86,23 @@ jobs:
         shell: bash
         run: |
           curl -fsSL https://gh.io/copilot-install | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           copilot --version
+
+      - name: Validate Copilot environment
+        shell: bash
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.MODELS_TOKEN }}
+        run: |
+          if [[ -z "$COPILOT_GITHUB_TOKEN" ]]; then
+            echo "MODELS_TOKEN is empty or unavailable in this run"
+            exit 1
+          fi
+          if ! command -v copilot >/dev/null 2>&1; then
+            echo "copilot binary not found in PATH"
+            ls -la "$HOME/.local/bin" || true
+            exit 1
+          fi
 
       - name: Wait for workflow completion
         env:

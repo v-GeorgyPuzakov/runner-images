@@ -102,11 +102,14 @@ $($LogLines -join "`n")
 
             $analysis = (Get-Content -Path $promptFile -Raw | & $copilotCmd --no-ask-user --no-custom-instructions 2>&1 | Out-String).Trim()
             if ($analysis -match "No authentication information found") {
+                Write-Host "Copilot auth error: No authentication information found."
                 return
             }
 
             if (-not [string]::IsNullOrWhiteSpace($analysis)) {
                 Write-Host $analysis
+            } else {
+                Write-Host "Copilot analysis returned empty output."
             }
         } catch {
         } finally {

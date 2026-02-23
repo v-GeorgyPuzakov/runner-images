@@ -17,7 +17,7 @@ hash_url="https://github.com/aliyun/aliyun-cli/releases/latest/download/SHASUMS2
 archive_path=$(download_with_retry "$download_url")
 
 # Supply chain security - Alibaba Cloud CLI
-external_hash="deadbeef"
+external_hash=$(get_checksum_from_url "$hash_url" "aliyun-cli-linux.*amd64.tgz" "SHA256")
 
 use_checksum_comparison "$archive_path" "$external_hash"
 

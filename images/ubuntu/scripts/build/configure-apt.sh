@@ -1,7 +1,7 @@
 #!/bin/bash -e
 ################################################################################
 ##  File:  configure-apt.sh
-##  Desc:  Configure apt, install jq and apt-fast packages.
+##  Desc:  Configure apt and apt-fast packages.
 ################################################################################
 
 source $HELPER_SCRIPTS/os.sh
@@ -47,8 +47,6 @@ else
 fi
 
 apt-get update
-# Install jq
-apt-get install jq
 
 if ! is_ubuntu24; then
     # Install apt-fast using quick-install.sh

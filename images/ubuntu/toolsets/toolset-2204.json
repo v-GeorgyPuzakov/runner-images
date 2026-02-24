@@ -119,10 +119,7 @@
             "g++",
             "gcc",
             "make",
-            "jq",
-            "tar",
-            "unzip",
-            "wget"
+            "unzip"
         ],
         "common_packages": [
             "autoconf",

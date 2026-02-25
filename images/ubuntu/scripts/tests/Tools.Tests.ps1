@@ -231,7 +231,7 @@ Describe "Vcpkg" {
 
 Describe "Git" {
     It "git" {
-        "ggg --version" | Should -ReturnZeroExitCode
+        "git --version" | Should -ReturnZeroExitCode
     }
 
     It "git-ftp" {

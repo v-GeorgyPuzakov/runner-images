@@ -35,9 +35,10 @@ Describe "ReadAhead udev rule" -Skip:(Test-IsUbuntu22) {
         $content | Should -Match 'ATTR\{queue/read_ahead_kb\}="128"'
     }
 
-    It "All sd* devices have read_ahead_kb set to 128" {
-        $devices = Get-ChildItem "/sys/block/sd*/queue/read_ahead_kb" -ErrorAction SilentlyContinue
-        $devices | Should -Not -BeNullOrEmpty -Because "there should be at least one sd* block device"
+    It "All block devices have read_ahead_kb set to 128" {
+        # sd* covers Azure v4 (SCSI); nvme*n* covers Azure v5/v6 (NVMe namespaces)
+        $devices = Get-ChildItem "/sys/block/sd*/queue/read_ahead_kb", "/sys/block/nvme*n*/queue/read_ahead_kb" -ErrorAction SilentlyContinue
+        $devices | Should -Not -BeNullOrEmpty -Because "there should be at least one sd* or nvme* block device"
         foreach ($dev in $devices) {
             $value = (Get-Content $dev.FullName).Trim()
             $value | Should -Be "128" -Because "read_ahead_kb for $($dev.FullName) should be 128 to prevent I/O thrashing"

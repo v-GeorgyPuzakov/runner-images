@@ -124,8 +124,26 @@ brew_smart_install() {
 
     failed=true
     for i in {1..10}; do
-        brew install $tool_name && failed=false || sleep 60
-        [ "$failed" = false ] && break
+        # Capture the output so we can detect the "no bottle available" error.
+        # When Homebrew has no prebuilt bottle for the current macOS version or
+        # architecture, the formula has to be built from source instead, and
+        # retrying the bottle installation would never succeed.
+        if install_output=$(brew install $tool_name 2>&1); then
+            echo "$install_output"
+            failed=false
+            break
+        fi
+        echo "$install_output"
+
+        if echo "$install_output" | grep -q "no bottle available"; then
+            echo "No prebuilt bottle is available for $tool_name. Building it from source..."
+            if brew install --build-from-source $tool_name; then
+                failed=false
+                break
+            fi
+        fi
+
+        sleep 60
     done
 
     if [ "$failed" = true ]; then

@@ -48,3 +48,50 @@ source "azure-arm" "image" {
     }
   }
 }
+
+source "amazon-ebs" "image" {
+  ami_name                    = local.aws_ami_name
+  associate_public_ip_address = true
+  instance_type               = var.aws_instance_type
+  region                      = var.aws_region
+  ssh_interface               = "public_ip"
+  ssh_username                = var.aws_ssh_username
+
+  source_ami_filter {
+    filters = {
+      architecture     = "x86_64"
+      name             = local.aws_source_ami_name_filter
+      root-device-type = "ebs"
+    }
+
+    most_recent = true
+    owners      = [var.aws_source_ami_owner]
+  }
+
+  ami_description = "Runner image for ${var.image_os} built from runner-images templates"
+
+  tags = merge(
+    {
+      Name         = local.aws_ami_name
+      ImageOS      = var.image_os
+      ImageVersion = var.image_version
+    },
+    var.aws_ami_tags
+  )
+
+  dynamic "launch_block_device_mappings" {
+    for_each = local.os_disk_size_gb > 0 ? [1] : []
+    content {
+      device_name           = "/dev/sda1"
+      volume_size           = local.os_disk_size_gb
+      volume_type           = "gp3"
+      delete_on_termination = true
+    }
+  }
+
+  vpc_id = var.aws_vpc_id != "" ? var.aws_vpc_id : null
+
+  subnet_id = var.aws_subnet_id != "" ? var.aws_subnet_id : null
+
+  security_group_id = var.aws_security_group_id != "" ? var.aws_security_group_id : null
+}

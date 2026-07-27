@@ -170,3 +170,56 @@ variable "install_user" {
   type    = string
   default = "installer"
 }
+
+// Cloud provider selection
+variable "cloud_provider" {
+  type    = string
+  default = "azure"
+
+  validation {
+    condition     = contains(["azure", "aws"], var.cloud_provider)
+    error_message = "Cloud provider must be either 'azure' or 'aws'."
+  }
+}
+
+// AWS environment related variables
+variable "aws_region" {
+  type    = string
+  default = ""
+}
+variable "aws_instance_type" {
+  type    = string
+  default = "m6i.xlarge"
+}
+variable "aws_ssh_username" {
+  type    = string
+  default = "ubuntu"
+}
+variable "aws_ami_name" {
+  type    = string
+  default = ""
+}
+variable "aws_source_ami_owner" {
+  type    = string
+  default = "099720109477"
+}
+variable "aws_source_ami_name_filter" {
+  type    = string
+  default = ""
+}
+variable "aws_vpc_id" {
+  type    = string
+  default = ""
+}
+variable "aws_subnet_id" {
+  type    = string
+  default = ""
+}
+variable "aws_security_group_id" {
+  type    = string
+  default = ""
+}
+variable "aws_ami_tags" {
+  type    = map(string)
+  default = {}
+}

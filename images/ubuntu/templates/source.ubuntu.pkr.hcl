@@ -84,6 +84,11 @@ source "amazon-ebs" "image" {
     var.aws_ami_tags
   )
 
+  run_tags = {
+    owner          = "runner-images-build"
+    created_by     = "packer"
+  }
+
   dynamic "launch_block_device_mappings" {
     for_each = local.os_disk_size_gb > 0 ? [1] : []
     content {

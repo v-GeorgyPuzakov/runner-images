@@ -57,6 +57,11 @@ source "amazon-ebs" "image" {
   ssh_interface               = "public_ip"
   ssh_username                = var.aws_ssh_username
 
+  aws_polling {
+    delay_seconds = 15
+    max_attempts  = 900
+  }
+
   source_ami_filter {
     filters = {
       architecture     = "x86_64"

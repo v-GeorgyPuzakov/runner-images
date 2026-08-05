@@ -46,6 +46,7 @@ else
     cat /etc/apt/sources.list.d/ubuntu.sources
 fi
 
+SNAPSHOT_ID="20250801T000000Z"
 echo "=== Добавляем snapshot config ==="
 echo "APT::Snapshot \"${SNAPSHOT_ID}\";" > /etc/apt/apt.conf.d/85-snapshot
 cat /etc/apt/apt.conf.d/85-snapshot

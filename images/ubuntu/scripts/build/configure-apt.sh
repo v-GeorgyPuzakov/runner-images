@@ -46,6 +46,15 @@ else
     cat /etc/apt/sources.list.d/ubuntu.sources
 fi
 
+SNAPSHOT_ID="20260806T143022Z"
+echo "=== Добавляем snapshot config ==="
+echo "APT::Snapshot \"${SNAPSHOT_ID}\";" > /etc/apt/apt.conf.d/85-snapshot
+cat /etc/apt/apt.conf.d/85-snapshot
+
+echo ""
+echo "=== apt-get update (verbose) ==="
+apt-get update -o Debug::Acquire::http=true 2>&1 | grep -E "snapshot|Snapshot|Hit:|Get:|Ign:|Err:|skipping|WARNING|W:"
+
 apt-get update
 apt-get upgrade -y
 # Install jq

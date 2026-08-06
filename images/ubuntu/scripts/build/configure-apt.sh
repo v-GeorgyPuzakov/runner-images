@@ -47,7 +47,7 @@ else
 fi
 
 SNAPSHOT_ID="20260806T143022Z"
-echo "=== Добавляем snapshot config ==="
+echo "=== snapshot config ==="
 echo "APT::Snapshot \"${SNAPSHOT_ID}\";" > /etc/apt/apt.conf.d/85-snapshot
 cat /etc/apt/apt.conf.d/85-snapshot
 

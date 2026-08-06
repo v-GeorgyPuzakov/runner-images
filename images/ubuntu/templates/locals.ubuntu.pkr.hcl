@@ -20,6 +20,7 @@ locals {
             "ubuntu26" = {
                   source_image_marketplace_sku = "canonical:ubuntu-26_04-lts:server"
                   os_disk_size_gb              = 75
+                  aws_source_ami_name_filter   = "ubuntu/images/*/ubuntu-resolute-26.04-amd64-server-*"
             },
             "ubuntu26-arm64" = {
                   source_image_marketplace_sku = "canonical:ubuntu-26_04-lts:server-arm64"

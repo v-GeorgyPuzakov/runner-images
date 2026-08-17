@@ -1,5 +1,5 @@
 build {
-  sources = ["source.azure-arm.image"]
+  sources = var.cloud_provider == "aws" ? ["source.amazon-ebs.image"] : ["source.azure-arm.image"]
   name = "ubuntu-26_04"
 
   provisioner "shell" {

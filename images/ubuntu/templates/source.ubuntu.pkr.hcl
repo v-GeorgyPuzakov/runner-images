@@ -96,6 +96,7 @@ source "amazon-ebs" "image" {
       device_name           = "/dev/sda1"
       volume_size           = local.os_disk_size_gb
       volume_type           = "gp3"
+      encrypted             = false
       delete_on_termination = true
     }
   }

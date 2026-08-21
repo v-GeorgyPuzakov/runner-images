@@ -52,6 +52,7 @@ source "azure-arm" "image" {
 source "amazon-ebs" "image" {
   ami_name                    = local.aws_ami_name
   associate_public_ip_address = true
+  encrypt_boot                = false
   instance_type               = var.aws_instance_type
   region                      = var.aws_region
   ssh_interface               = "public_ip"

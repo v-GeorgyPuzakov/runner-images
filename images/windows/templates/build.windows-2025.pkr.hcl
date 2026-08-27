@@ -256,6 +256,14 @@ build {
     skip_clean       = true
   }
 
+  provisioner "powershell" {
+    inline = [
+      "if (-not (Test-Path 'C:\\Program Files\\dotnet\\sdk\\9.0.3*')) { throw 'No .NET 9.0.3xx SDK found to remove' }",
+      "Remove-Item -Path 'C:\\Program Files\\dotnet\\sdk\\9.0.3*' -Recurse -Force",
+      "if (Test-Path 'C:\\Program Files\\dotnet\\sdk\\9.0.3*') { throw 'Failed to remove .NET 9.0.3xx SDK' }"
+    ]
+  }
+
   provisioner "windows-restart" {
     restart_timeout = "10m"
   }

@@ -26,6 +26,24 @@ Describe "fwupd removed" {
 # https://github.com/actions/runner-images/issues/13770
 # Linux kernel 6.17 changed read_ahead_kb from 128 to 4096 on Azure VMs, causing I/O thrashing
 Describe "ReadAhead udev rule" -Skip:(Test-IsUbuntu22) {
+    BeforeAll {
+        $readAheadDevicePatterns = @(
+            "/sys/block/sd*/queue/read_ahead_kb",
+            "/sys/block/nvme*/queue/read_ahead_kb"
+        )
+
+        $readAheadDevices = @(
+            foreach ($pattern in $readAheadDevicePatterns) {
+                Get-ChildItem $pattern -ErrorAction SilentlyContinue
+            }
+        )
+
+        if ($readAheadDevices.Count -eq 0) {
+            $attemptedPatterns = $readAheadDevicePatterns -join ", "
+            throw "No block devices detected for read_ahead_kb check. Patterns: $attemptedPatterns"
+        }
+    }
+
     It "udev rule file exists" {
         "/etc/udev/rules.d/99-readahead.rules" | Should -Exist
     }
@@ -36,10 +54,8 @@ Describe "ReadAhead udev rule" -Skip:(Test-IsUbuntu22) {
         $content | Should -Match 'ATTR\{queue/read_ahead_kb\}="128"'
     }
 
-    It "All SCSI and NVMe devices have read_ahead_kb set to 128" {
-        $devices = Get-ChildItem "/sys/block/sd*/queue/read_ahead_kb", "/sys/block/nvme*n*/queue/read_ahead_kb" -ErrorAction SilentlyContinue
-        $devices | Should -Not -BeNullOrEmpty -Because "there should be at least one sd* or nvme* block device"
-        foreach ($dev in $devices) {
+    It "All detected block devices have read_ahead_kb set to 128" {
+        foreach ($dev in $readAheadDevices) {
             $value = (Get-Content $dev.FullName).Trim()
             $value | Should -Be "128" -Because "read_ahead_kb for $($dev.FullName) should be 128 to prevent I/O thrashing"
         }

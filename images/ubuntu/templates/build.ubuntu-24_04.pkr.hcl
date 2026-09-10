@@ -1,5 +1,5 @@
 build {
-  sources = ["source.azure-arm.image"]
+  sources = var.cloud_provider == "aws" ? ["source.amazon-ebs.image"] : ["source.azure-arm.image"]
   name = "ubuntu-24_04"
 
   provisioner "shell" {
@@ -231,7 +231,7 @@ provisioner "shell" {
 
   provisioner "shell" {
     execute_command = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
-    inline          = ["sleep 30", "/usr/sbin/waagent -force -deprovision+user && export HISTSIZE=0 && sync"]
+    inline          = ["sleep 30", "if [ -x /usr/sbin/waagent ] && [ -f /etc/waagent.conf ]; then /usr/sbin/waagent -force -deprovision+user; fi && export HISTSIZE=0 && sync"]
   }
 
 }

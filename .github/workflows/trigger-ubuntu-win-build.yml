@@ -6,6 +6,15 @@ on:
       image_type:
         required: true
         type: string
+      custom_repo:
+        required: false
+        type: string
+      custom_repo_commit_hash:
+        required: false
+        type: string
+      pr_title:
+        required: false
+        type: string
 
 defaults:
   run:
@@ -19,7 +28,9 @@ jobs:
       ci_workflow_run_url: ${{ steps.resolve.outputs.ci_workflow_run_url }}
     env:
       CI_PR_TOKEN: ${{ secrets.CI_PR_TOKEN }}
-      PR_TITLE: ${{ github.event.pull_request.title }}
+      PR_TITLE: ${{ github.event.pull_request.title || inputs.pr_title }}
+      CUSTOM_REPO: ${{ github.event.pull_request.head.repo.full_name || inputs.custom_repo }}
+      CUSTOM_REPO_COMMIT_HASH: ${{ github.event.pull_request.head.sha || inputs.custom_repo_commit_hash }}
       CI_REPO: ${{ vars.CI_REPO }}
     steps:
       - name: Checkout Code
@@ -34,8 +45,8 @@ jobs:
           [string] $prGuid = New-Guid
           $clientPayload = @{
               pr_title                = "${env:PR_TITLE} - " + $prGuid
-              custom_repo             = "${{ github.event.pull_request.head.repo.full_name }}"
-              custom_repo_commit_hash = "${{ github.event.pull_request.head.sha }}"
+              custom_repo             = "${env:CUSTOM_REPO}"
+              custom_repo_commit_hash = "${env:CUSTOM_REPO_COMMIT_HASH}"
           }
 
           $gitHubApi.DispatchWorkflow($eventType, $clientPayload)

@@ -37,6 +37,12 @@ class GithubApi
         return $response
     }
 
+    [object] GetWorkflowRunJobs([string]$WorkflowRunId) {
+        $url = "actions/runs/$WorkflowRunId/jobs"
+        $response = $this.InvokeRestMethod($url, 'GET', "filter=latest&per_page=100", $null)
+        return $response
+    }
+
     [object] DispatchWorkflow([string]$EventType, [object]$EventPayload) {
         $url = "dispatches"
         $body = @{

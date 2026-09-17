@@ -1,0 +1,28 @@
+name: Test CI failure details
+
+on:
+  workflow_dispatch:
+    inputs:
+      workflow_run_id:
+        description: Completed CI workflow run ID
+        required: true
+        type: string
+
+jobs:
+  test-failure-details:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+
+      - name: Report remote CI failure
+        env:
+          CI_PR_TOKEN: ${{ secrets.CI_PR_TOKEN }}
+          CI_REPO: ${{ vars.CI_REPO }}
+        shell: pwsh
+        run: |
+          ./helpers/WaitWorkflowCompletion.ps1 `
+            -WorkflowRunId "${{ inputs.workflow_run_id }}" `
+            -Repository "${env:CI_REPO}" `
+            -AccessToken "${env:CI_PR_TOKEN}" `
+            -RetryIntervalSeconds 1

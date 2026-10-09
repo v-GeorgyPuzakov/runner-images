@@ -43,6 +43,12 @@ class GithubApi
         return $response
     }
 
+    [object] GetCheckRunAnnotations([string]$CheckRunId) {
+        $url = "check-runs/$CheckRunId/annotations"
+        $response = $this.InvokeRestMethod($url, 'GET', "per_page=100", $null)
+        return $response
+    }
+
     [object] DispatchWorkflow([string]$EventType, [object]$EventPayload) {
         $url = "dispatches"
         $body = @{

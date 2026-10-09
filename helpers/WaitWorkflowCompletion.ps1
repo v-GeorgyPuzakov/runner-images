@@ -24,26 +24,51 @@ function ConvertTo-WorkflowCommandValue($Value) {
     return "$Value".Replace("%", "%25").Replace("`r", "%0D").Replace("`n", "%0A")
 }
 
-function Write-WorkflowFailureDetails($WorkflowRunId) {
-    $failedJobs = $gitHubApi.GetWorkflowRunJobs($WorkflowRunId).jobs | Where-Object {
-        $_.conclusion -notin ("success", "skipped", $null)
+function Test-FailedConclusion($Conclusion) {
+    return $Conclusion -notin ("success", "skipped", "neutral", $null)
+}
+
+function Get-JobErrorMessage($JobId) {
+    # Report only failure annotations (exit code, timeout, cancellation) instead of the job log,
+    # since the log of the private CI repository must not be exposed in public PR checks
+    try {
+        $annotations = $gitHubApi.GetCheckRunAnnotations($JobId)
+    } catch {
+        Write-Warning "Unable to get annotations for job ${JobId}: $($_.Exception.Message)"
+        return
     }
 
+    $annotations | Where-Object { $_.annotation_level -eq "failure" -and $_.message } | ForEach-Object { "$($_.message)".Trim() }
+}
+
+function Write-WorkflowFailureDetails($WorkflowRun) {
+    $failedJobs = $gitHubApi.GetWorkflowRunJobs($WorkflowRun.id).jobs | Where-Object { Test-FailedConclusion $_.conclusion }
+
     if (-not $failedJobs) {
-        Write-Host "::error title=Remote CI failed::No failed job details were returned."
+        Write-Host "::error title=Remote CI failed::Workflow run finished with result '$($WorkflowRun.conclusion)', but no failed jobs were found."
         return
     }
 
     "## Remote CI failure details" | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY
     foreach ($job in $failedJobs) {
-        "- [$($job.name)]($($job.html_url)): $($job.conclusion)" | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY
+        $failedSteps = @($job.steps | Where-Object { Test-FailedConclusion $_.conclusion })
+        $jobErrorMessages = @(Get-JobErrorMessage -JobId $job.id)
 
-        $failedSteps = $job.steps | Where-Object { $_.conclusion -notin ("success", "skipped", $null) }
+        "- [$($job.name)]($($job.html_url)): $($job.conclusion)" | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY
         foreach ($step in $failedSteps) {
             "  - Step ``$($step.name)``: $($step.conclusion)" | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY
-            $errorMessage = "Job '$($job.name)', step '$($step.name)': $($step.conclusion)"
-            Write-Host "::error title=Remote CI failed::$(ConvertTo-WorkflowCommandValue $errorMessage)"
         }
+        foreach ($jobErrorMessage in $jobErrorMessages) {
+            "  - Error: $($jobErrorMessage -replace '\s+', ' ')" | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY
+        }
+
+        if ($failedSteps) {
+            $errorLines = @($failedSteps | ForEach-Object { "Job '$($job.name)', step '$($_.name)': $($_.conclusion)" })
+        } else {
+            $errorLines = @("Job '$($job.name)': $($job.conclusion)")
+        }
+        $errorMessage = ($errorLines + $jobErrorMessages) -join "`n"
+        Write-Host "::error title=Remote CI failed::$(ConvertTo-WorkflowCommandValue $errorMessage)"
     }
 }
 
@@ -72,6 +97,11 @@ Write-Host "Last result: $($finishedWorkflowRun.conclusion)."
 "CI_WORKFLOW_RUN_RESULT=$($finishedWorkflowRun.conclusion)" | Out-File -Append -FilePath $env:GITHUB_ENV
 
 if ($finishedWorkflowRun.conclusion -ne "success") {
-    Write-WorkflowFailureDetails -WorkflowRunId $WorkflowRunId
+    try {
+        Write-WorkflowFailureDetails -WorkflowRun $finishedWorkflowRun
+    } catch {
+        $errorMessage = "Workflow run finished with result '$($finishedWorkflowRun.conclusion)'. Unable to get failure details: $($_.Exception.Message)"
+        Write-Host "::error title=Remote CI failed::$(ConvertTo-WorkflowCommandValue $errorMessage)"
+    }
     exit 1
 }

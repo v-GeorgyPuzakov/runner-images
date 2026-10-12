@@ -59,7 +59,9 @@ function Write-WorkflowFailureDetails($WorkflowRun) {
             "  - Step ``$($step.name)``: $($step.conclusion)" | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY
         }
         foreach ($jobErrorMessage in $jobErrorMessages) {
-            "  - Error: $($jobErrorMessage -replace '\s+', ' ')" | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY
+            foreach ($line in $jobErrorMessage -split "\r?\n" | Where-Object { $_.Trim() }) {
+                "  - $($line.Trim())" | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY
+            }
         }
 
         if ($failedSteps) {

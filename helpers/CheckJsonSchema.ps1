@@ -11,6 +11,7 @@ $toolsetFiles = Get-ChildItem -Recurse -Filter "toolset-*.json" | Where-Object {
 $schemaFilePath = "./schemas/toolset-schema.json"
 
 $toolsetHasErrors = $false
+
 foreach ($file in $toolsetFiles) {
     Write-Host ""
     Write-Host "🔍 Validating $($file.FullName)" -ForegroundColor Cyan

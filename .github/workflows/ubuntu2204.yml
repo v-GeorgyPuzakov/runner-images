@@ -6,6 +6,7 @@ on:
     types: labeled
     paths:
     - 'images/ubuntu/**'
+  workflow_dispatch: {}
 
 defaults:
   run:
@@ -13,7 +14,7 @@ defaults:
 
 jobs:
   Ubuntu_2204:
-    if: github.event.label.name == 'CI ubuntu-all' || github.event.label.name == 'CI ubuntu-2204'
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'CI ubuntu-all' || github.event.label.name == 'CI ubuntu-2204'
     uses: ./.github/workflows/trigger-ubuntu-win-build.yml
     with:
       image_type: 'ubuntu2204'

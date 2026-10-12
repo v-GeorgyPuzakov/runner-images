@@ -18,9 +18,11 @@ jobs:
       ci_workflow_run_id: ${{ steps.resolve.outputs.ci_workflow_run_id }}
       ci_workflow_run_url: ${{ steps.resolve.outputs.ci_workflow_run_url }}
     env:
-      CI_PR_TOKEN: ${{ secrets.CI_PR_TOKEN }}
-      PR_TITLE: ${{ github.event.pull_request.title }}
-      CI_REPO: ${{ vars.CI_REPO }}
+      CI_PR_TOKEN: ${{ secrets.CI_PR_TOKEN || secrets.GITHUB_TOKEN }}
+      PR_TITLE: ${{ github.event.pull_request.title || github.ref_name }}
+      CI_REPO: ${{ vars.CI_REPO || 'actions/runner-images-ci' }}
+      CUSTOM_REPO: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+      CUSTOM_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
@@ -34,8 +36,8 @@ jobs:
           [string] $prGuid = New-Guid
           $clientPayload = @{
               pr_title                = "${env:PR_TITLE} - " + $prGuid
-              custom_repo             = "${{ github.event.pull_request.head.repo.full_name }}"
-              custom_repo_commit_hash = "${{ github.event.pull_request.head.sha }}"
+              custom_repo             = "${env:CUSTOM_REPO}"
+              custom_repo_commit_hash = "${env:CUSTOM_SHA}"
           }
 
           $gitHubApi.DispatchWorkflow($eventType, $clientPayload)
@@ -80,10 +82,38 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v5
 
+      - name: Install Copilot CLI
+        shell: bash
+        run: |
+          curl -fsSL https://gh.io/copilot-install | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          copilot --version
+
+      - name: Validate Copilot environment
+        shell: bash
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.MODELS_TOKEN }}
+        run: |
+          if [[ -z "$COPILOT_GITHUB_TOKEN" ]]; then
+            echo "MODELS_TOKEN is empty or unavailable in this run"
+            exit 1
+          fi
+          if ! command -v copilot >/dev/null 2>&1; then
+            echo "copilot binary not found in PATH"
+            ls -la "$HOME/.local/bin" || true
+            exit 1
+          fi
+
       - name: Wait for workflow completion
         env:
-          CI_PR_TOKEN: ${{ secrets.CI_PR_TOKEN }}
-          CI_REPO: ${{ vars.CI_REPO }}
+          CI_PR_TOKEN: ${{ secrets.CI_PR_TOKEN || secrets.GITHUB_TOKEN }}
+          CI_REPO: ${{ vars.CI_REPO || 'actions/runner-images-ci' }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.MODELS_TOKEN }}
+          GH_TOKEN: ${{ secrets.MODELS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.MODELS_TOKEN }}
+          COPILOT_AUTO_UPDATE: "false"
+          COPILOT_MODEL: gpt-5
+          COPILOT_ALLOW_ALL: "false"
         run: |
           ./helpers/WaitWorkflowCompletion.ps1 `
             -WorkflowRunId "${{ needs.trigger-workflow.outputs.ci_workflow_run_id }}" `
@@ -110,8 +140,8 @@ jobs:
 
       - name: Cancel workflow
         env:
-          CI_PR_TOKEN: ${{ secrets.CI_PR_TOKEN }}
-          CI_REPO: ${{ vars.CI_REPO }}
+          CI_PR_TOKEN: ${{ secrets.CI_PR_TOKEN || secrets.GITHUB_TOKEN }}
+          CI_REPO: ${{ vars.CI_REPO || 'actions/runner-images-ci' }}
         run: |
           Import-Module ./helpers/GitHubApi.psm1
 

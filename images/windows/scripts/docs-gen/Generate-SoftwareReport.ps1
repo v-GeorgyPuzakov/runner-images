@@ -6,6 +6,10 @@ $global:ProgressPreference = "SilentlyContinue"
 $ErrorView = "NormalView"
 Set-StrictMode -Version Latest
 
+# TEST ONLY: simulate a pre-release toolcache folder, removed at the end
+$testPrereleasePath = Join-Path $env:AGENT_TOOLSDIRECTORY "Python\3.99.0-rc.1\x64"
+New-Item -ItemType Directory -Path $testPrereleasePath -Force | Out-Null
+
 Import-Module (Join-Path $PSScriptRoot "SoftwareReport.Android.psm1") -DisableNameChecking
 Import-Module (Join-Path $PSScriptRoot "SoftwareReport.Browsers.psm1") -DisableNameChecking
 Import-Module (Join-Path $PSScriptRoot "SoftwareReport.CachedTools.psm1") -DisableNameChecking
@@ -262,3 +266,6 @@ Microsoft Defender is not disabled on this image. Tamper Protection is enabled b
 # Generate reports
 $softwareReport.ToJson() | Out-File -FilePath "C:\software-report.json" -Encoding UTF8NoBOM
 $softwareReport.ToMarkdown() | Out-File -FilePath "C:\software-report.md" -Encoding UTF8NoBOM
+
+# TEST ONLY: remove the simulated pre-release toolcache folder
+Remove-Item -Path (Split-Path $testPrereleasePath) -Recurse -Force

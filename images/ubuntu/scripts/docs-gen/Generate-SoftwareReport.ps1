@@ -25,6 +25,10 @@ Import-Module (Join-Path $PSScriptRoot "SoftwareReport.WebServers.psm1") -Disabl
 # Restore file owner in user profile
 sudo chown -R ${env:USER}: $env:HOME
 
+# TEST ONLY: simulate a pre-release toolcache folder, removed at the end
+$testPrereleasePath = Join-Path $env:AGENT_TOOLSDIRECTORY "Python/3.99.0-rc.1/x64"
+sudo mkdir -p $testPrereleasePath
+
 # Software report
 $softwareReport = [SoftwareReport]::new("Ubuntu $(Get-OSVersionShort)")
 $softwareReport.Root.AddToolVersion("OS Version:", $(Get-OSVersionFull))
@@ -299,3 +303,6 @@ $installedSoftware.AddHeader("Installed apt packages").AddTable($(Get-AptPackage
 
 $softwareReport.ToJson() | Out-File -FilePath "${OutputDirectory}/software-report.json" -Encoding UTF8NoBOM
 $softwareReport.ToMarkdown() | Out-File -FilePath "${OutputDirectory}/software-report.md" -Encoding UTF8NoBOM
+
+# TEST ONLY: remove the simulated pre-release toolcache folder
+sudo rm -rf (Split-Path $testPrereleasePath)
